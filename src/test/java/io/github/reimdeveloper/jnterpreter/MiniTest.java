@@ -56,7 +56,10 @@ class MiniTest {
         Value concat = session.eval("\"a\" + \"b\";", "demo");
         assertTrue(concat instanceof Value.Str str && str.v().equals("ab"));
         session.eval("print(\"hi\");", "demo");
-        assertEquals("hi\n", session.output());
+        // print() writes through PrintStream.println, which ends lines with
+        // the platform separator ("\r\n" on Windows). The expected string
+        // must use it too — a hardcoded "\n" failed CI run #12 on Windows.
+        assertEquals("hi" + System.lineSeparator(), session.output());
     }
 
     @Test
@@ -99,6 +102,9 @@ class MiniTest {
         StringWriter out = new StringWriter();
         Repl.run(repl::evalLine,
             new StringReader("let a = 2;\na * 3\nb * 2\n"), out);
-        assertEquals("6\nerror: undefined variable 'b'\n", out.toString());
+        // Repl writes through BufferedWriter.newLine(): the platform
+        // separator, not always "\n" (see stringsAndNativePrint).
+        String nl = System.lineSeparator();
+        assertEquals("6" + nl + "error: undefined variable 'b'" + nl, out.toString());
     }
 }
