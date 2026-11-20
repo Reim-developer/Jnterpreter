@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.7.0] - 2026-11-21
+
+### Added
+
+- `jnterpreter-core`: an annotation-driven lexer.
+  `@Pattern`, `@Literal`, and `@Skip` on the constants of the
+  kind enum, scanned by `RegexLexer.of`. Matching is maximal
+  munch: the longest match wins, ties broken by declaration
+  order. Skipped text (whitespace, comments) produces no token.
+  The kind type must be an enum for this path; a hand-written
+  `LexerBase` subclass stays available for lexers with rules
+  annotations cannot express.
+
 ## [0.6.0] - 2026-11-21
 
 ### Added

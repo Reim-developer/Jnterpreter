@@ -68,6 +68,39 @@ Span span = new Span("demo", 0, 1, 1, 1);
 Token<Kind> token = new Token<>(Kind.NUMBER, "42", span);
 ```
 
+## Lexer
+
+A lexer can be declared with annotations instead of written by
+hand: `@Pattern`, `@Literal`, and `@Skip` on the constants of the
+kind enum, scanned by `RegexLexer.of`. Matching is maximal munch:
+at each position the longest match wins, and ties are broken by
+declaration order, so a keyword declared before the identifier
+pattern wins at `"if"` while the identifier wins at `"ifx"`.
+Skipped text (whitespace, comments) produces no token. The kind
+type must be an enum for this path; a hand-written `LexerBase`
+subclass stays available for lexers with rules annotations cannot
+express.
+
+```java
+import com.reim.jnterpreter.lexer.Literal;
+import com.reim.jnterpreter.lexer.Pattern;
+import com.reim.jnterpreter.lexer.RegexLexer;
+import com.reim.jnterpreter.lexer.Skip;
+import com.reim.jnterpreter.lexer.Token;
+import java.util.List;
+
+enum Kind {
+    @Pattern("\\d+(\\.\\d+)?") NUMBER,
+    @Literal("+") PLUS,
+    @Skip("\\s+") WS,
+    EOF
+}
+
+List<Token<Kind>> tokens =
+    RegexLexer.of(Kind.class, "demo", "1 + 2.5", Kind.EOF).tokenize();
+System.out.println(tokens);
+```
+
 ## Annotations
 
 Parselets can be declared with annotations instead of registered
