@@ -1,32 +1,24 @@
-plugins {
-    `java-library`
-}
-
 group = "io.github.reim-developer"
 version = "0.1.0"
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+subprojects {
+    apply(plugin = "java-library")
+
+    configure<org.gradle.api.plugins.JavaPluginExtension> {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
     }
-}
 
-repositories {
-    mavenCentral()
-}
+    repositories {
+        mavenCentral()
+    }
 
-dependencies {
-    testImplementation("org.junit.jupiter:junit-jupiter:5.14.4")
-    // Gradle's test worker loads JUnit Platform through the launcher, which
-    // junit-jupiter does NOT bring in transitively. Without this, :test
-    // fails with "Failed to load JUnit Platform" (proven by CI run #10).
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.14.4")
-}
+    tasks.withType<org.gradle.api.tasks.compile.JavaCompile>().configureEach {
+        options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
+    }
 
-tasks.withType<JavaCompile>().configureEach {
-    options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
-}
-
-tasks.test {
-    useJUnitPlatform()
+    tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+        useJUnitPlatform()
+    }
 }

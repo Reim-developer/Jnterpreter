@@ -17,6 +17,13 @@ Jnterpreter is a toolkit, not a framework: it owns the reusable parts
 expression parsing, a REPL) and never owns your AST or evaluator.
 
 ```java
+import com.reim.jnterpreter.diagnostic.LangError;
+import com.reim.jnterpreter.lexer.LexerBase;
+import com.reim.jnterpreter.parser.Parser;
+import com.reim.jnterpreter.repl.Repl;
+import com.reim.jnterpreter.runtime.Env;
+import com.reim.jnterpreter.runtime.Value;
+
 // 1. Tokenize with your own lexer (subclass LexerBase).
 // 2. Parse expressions with Pratt parsing (Expr is your own AST type).
 Parser<Expr> parser = new Parser<>(tokens);
