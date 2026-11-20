@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0] - 2026-11-21
+
+### Added
+
+- `jnterpreter-inference`: closed record types - `Type.Rec`
+  and the `Type.record` factory. Records unify field-wise
+  with exact field sets; fields print sorted by name.
+  Projection of a record with a known type works;
+  projection through a polymorphic record type needs row
+  polymorphism, which is not in this release.
+
 ## [0.2.0] - 2026-11-20
 
 ### Added

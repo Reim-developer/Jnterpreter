@@ -75,6 +75,23 @@ Type idType = checker.instantiate(env.lookup("id", span));
 checker.unify(idType, Type.fun(Type.NUM, Type.NUM), span, "id used at num");
 ```
 
+Records are closed: a record type is a fixed set of named
+fields, and two records unify only when their field sets
+match exactly. Projection is the author's walk: look the
+field up in a known record type, or unify an unknown record
+type with a single-field record.
+
+```java
+import com.reim.jnterpreter.inference.Type;
+import java.util.Map;
+
+Type point = Type.record(Map.of("x", Type.NUM, "y", Type.NUM));
+```
+
+A polymorphic accessor like `fn(r) => r.x` applied to a
+record with extra fields does not type-check - that needs
+row polymorphism, which is not in this release.
+
 ## License
 
 Licensed under either of Apache License, Version 2.0 or MIT license, at
