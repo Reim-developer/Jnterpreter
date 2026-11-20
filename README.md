@@ -14,7 +14,8 @@ Requires JDK 21.
 
 Jnterpreter is a toolkit, not a framework: it owns the reusable parts
 (spans and pretty errors, the value domain, lexical scopes, Pratt
-expression parsing, a REPL) and never owns your AST or evaluator.
+expression parsing, a REPL, and Hindley-Milner type inference) and
+never owns your AST or evaluator.
 
 ```java
 import com.reim.jnterpreter.diagnostic.LangError;
@@ -46,6 +47,32 @@ try {
 // 5. A REPL reads lines, evaluates them, and prints results.
 new Repl(this::evalLine,
     new InputStreamReader(System.in), new OutputStreamWriter(System.out)).run();
+```
+
+## Type inference
+
+The `jnterpreter-inference` module adds Hindley-Milner type
+inference for your language (implemented in Kotlin; the public API
+is Java-friendly). You write the walk over your own AST; the engine
+owns unification, generalization, and instantiation. Type errors are
+`LangError`, so they print through the same path as parse and
+evaluation errors.
+
+```java
+import com.reim.jnterpreter.diagnostic.Span;
+import com.reim.jnterpreter.inference.Checker;
+import com.reim.jnterpreter.inference.Scheme;
+import com.reim.jnterpreter.inference.Type;
+import com.reim.jnterpreter.inference.TypeEnv;
+import java.util.Set;
+
+Span span = new Span("demo", 0, 1, 1, 1);
+Checker checker = new Checker();
+TypeEnv env = new TypeEnv();
+Type.Var a = checker.freshVar();
+env.define("id", new Scheme(Type.fun(a, a), Set.of(a)));
+Type idType = checker.instantiate(env.lookup("id", span));
+checker.unify(idType, Type.fun(Type.NUM, Type.NUM), span, "id used at num");
 ```
 
 ## License

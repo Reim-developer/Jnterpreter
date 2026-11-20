@@ -1,5 +1,5 @@
 group = "io.github.reim-developer"
-version = "0.1.0"
+version = "0.2.0"
 
 subprojects {
     apply(plugin = "java-library")
@@ -26,7 +26,7 @@ subprojects {
         // String-form add(): the testImplementation/testRuntimeOnly
         // accessors are only generated for a script whose own project
         // applies the java plugin, and the root does not apply it to
-        // itself — the same reason the subprojects block above uses
+        // itself - the same reason the subprojects block above uses
         // fully-qualified type configuration.
         add("testImplementation", "org.junit.jupiter:junit-jupiter:5.14.4")
         // Gradle's test worker loads JUnit Platform through the launcher, which

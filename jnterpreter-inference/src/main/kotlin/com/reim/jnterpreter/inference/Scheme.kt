@@ -3,7 +3,7 @@ package com.reim.jnterpreter.inference
 /**
  * A type scheme: a type plus the variables quantified over it. A
  * let-bound name stores a scheme; each use instantiates it. A scheme
- * with no quantified variables is monomorphic — see [mono].
+ * with no quantified variables is monomorphic - see [mono].
  *
  * @param type the scheme's type
  * @param quantified the variables quantified over the type; copied on

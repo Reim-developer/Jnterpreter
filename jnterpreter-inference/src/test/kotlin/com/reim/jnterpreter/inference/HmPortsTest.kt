@@ -10,8 +10,9 @@ import org.junit.jupiter.api.Test
 /**
  * The 8 hm.c demo cases, ported, plus the environment-leak case from
  * the design. The test AST (Lit/Var/Lam/App/Let) and the infer walk
- * live in this file: the inference module must not depend on Mini,
- * so the engine is exercised through a minimal language of its own.
+ * live in this file: the engine is exercised through a minimal
+ * expression language of its own, so these tests depend on no demo
+ * language at all.
  * Base-type mapping: hm.c `int` -> `num`, `string` -> `str`.
  */
 class HmPortsTest {

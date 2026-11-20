@@ -6,8 +6,8 @@ package com.reim.jnterpreter.inference
  * The algebra is Hindley-Milner: variables are mutable (unifying one
  * binds it), constructors are named with argument types, and function
  * types nest to the right. Base types are nullary constructors
- * ([NUM], [STR], [BOOL], [NIL]). A type is not a pure value — a
- * variable's binding changes as inference proceeds — so tests assert
+ * ([NUM], [STR], [BOOL], [NIL]). A type is not a pure value - a
+ * variable's binding changes as inference proceeds - so tests assert
  * on the printed form, which is the type's observable contract.
  */
 sealed interface Type {
@@ -16,7 +16,7 @@ sealed interface Type {
      * A bound variable returns what it is bound to; an unbound
      * variable, a constructor, and a function type return
      * themselves. Follows only the top-level link, with path
-     * compression — it does not rebuild function types.
+     * compression - it does not rebuild function types.
      *
      * @return the representative of this type
      */
