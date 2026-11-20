@@ -17,22 +17,25 @@ import org.junit.jupiter.api.Test;
 
 class LexerBaseTest {
 
-    /** A minimal lexer: numbers and '+' only. */
-    static final class PlusLexer extends LexerBase {
-        PlusLexer(String source, String text) { super(source, text); }
+    /** The test language's token kinds. */
+    enum Kind { NUMBER, PLUS, EOF }
 
-        @Override public Token nextToken() {
+    /** A minimal lexer: numbers and '+' only. */
+    static final class PlusLexer extends LexerBase<Kind> {
+        PlusLexer(String source, String text) { super(source, text, Kind.EOF); }
+
+        @Override public Token<Kind> nextToken() {
             while (!eof() && (peek() == ' ' || peek() == '\n')) advance();
             int startPos = pos, startLine = line, startCol = col;
-            if (eof()) return new Token("EOF", "", spanFrom(startPos, startLine, startCol));
+            if (eof()) return new Token<>(eofKind, "", spanFrom(startPos, startLine, startCol));
             char c = advance();
             if (Character.isDigit(c)) {
                 while (Character.isDigit(peek())) advance();
-                return new Token("NUMBER", text.substring(startPos, pos),
+                return new Token<>(Kind.NUMBER, text.substring(startPos, pos),
                     spanFrom(startPos, startLine, startCol));
             }
             if (c == '+') {
-                return new Token("+", "+", spanFrom(startPos, startLine, startCol));
+                return new Token<>(Kind.PLUS, "+", spanFrom(startPos, startLine, startCol));
             }
             throw error("unexpected character '" + c + "'",
                 spanFrom(startPos, startLine, startCol));
@@ -44,17 +47,17 @@ class LexerBaseTest {
 
     @Test
     void tracksLineAndColumn() {
-        List<Token> tokens = new PlusLexer("test", "1\n2").tokenize();
+        List<Token<Kind>> tokens = new PlusLexer("test", "1\n2").tokenize();
         assertEquals(new Span("test", 0, 1, 1, 1), tokens.get(0).span());
         assertEquals(new Span("test", 2, 3, 2, 1), tokens.get(1).span());
-        List<Token> spaced = new PlusLexer("test", "1 + 2").tokenize();
+        List<Token<Kind>> spaced = new PlusLexer("test", "1 + 2").tokenize();
         assertEquals(3, spaced.get(1).span().col());
         assertEquals(5, spaced.get(2).span().col());
     }
 
     @Test
     void spanFromCoversToken() {
-        List<Token> tokens = new PlusLexer("test", "12 + 34").tokenize();
+        List<Token<Kind>> tokens = new PlusLexer("test", "12 + 34").tokenize();
         assertEquals(new Span("test", 0, 2, 1, 1), tokens.get(0).span());
         assertEquals(new Span("test", 3, 4, 1, 4), tokens.get(1).span());
         assertEquals(new Span("test", 5, 7, 1, 6), tokens.get(2).span());
@@ -62,9 +65,9 @@ class LexerBaseTest {
 
     @Test
     void tokenizeEndsWithEof() {
-        List<Token> tokens = new PlusLexer("test", "1 + 2").tokenize();
+        List<Token<Kind>> tokens = new PlusLexer("test", "1 + 2").tokenize();
         assertEquals(4, tokens.size());
-        assertEquals("EOF", tokens.get(3).kind());
+        assertEquals(Kind.EOF, tokens.get(3).kind());
         assertEquals("", tokens.get(3).lexeme());
     }
 

@@ -8,18 +8,25 @@ import java.util.List;
 /** Base class for lexers: it tracks the current position (offset,
  * line, column) in the input, creates spans, and builds span errors. A
  * language subclasses it and implements {@link #nextToken()} with its
- * own token rules.
+ * own token rules. The kind type {@code K} is defined by the
+ * language, typically an enum; the language's kind type must include
+ * an EOF kind, passed to the constructor as {@code eofKind}.
+ *
+ * @param <K> the language's token kind type
  */
-public abstract class LexerBase {
+public abstract class LexerBase<K> {
     protected final String source;
     protected final String text;
+    /** The kind that means end of input, for the EOF token. */
+    protected final K eofKind;
     protected int pos = 0;
     protected int line = 1;
     protected int col = 1;
 
-    protected LexerBase(String source, String text) {
+    protected LexerBase(String source, String text, K eofKind) {
         this.source = source;
         this.text = text;
+        this.eofKind = eofKind;
     }
 
     /** Whether the input is fully consumed. */
@@ -62,17 +69,17 @@ public abstract class LexerBase {
     }
 
     /** Scans and returns the next token, or an EOF token at end of input. */
-    public abstract Token nextToken();
+    public abstract Token<K> nextToken();
 
     /**
      * Tokenizes the whole input.
      *
      * @return the tokens, including a trailing EOF token
      */
-    public List<Token> tokenize() {
-        List<Token> out = new ArrayList<>();
-        Token t;
-        do { t = nextToken(); out.add(t); } while (!t.kind().equals("EOF"));
+    public List<Token<K>> tokenize() {
+        List<Token<K>> out = new ArrayList<>();
+        Token<K> t;
+        do { t = nextToken(); out.add(t); } while (!t.kind().equals(eofKind));
         return out;
     }
 }

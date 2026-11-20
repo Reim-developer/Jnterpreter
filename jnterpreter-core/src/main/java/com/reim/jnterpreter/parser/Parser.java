@@ -12,14 +12,23 @@ import java.util.Map;
  * continue one.
  *
  * @param <E> the language's expression (AST) type
+ * @param <K> the language's token kind type
  */
-public final class Parser<E> {
-    private final List<Token> tokens;
+public final class Parser<E, K> {
+    private final List<Token<K>> tokens;
+    private final K eofKind;
     private int pos = 0;
-    private final Map<String, PrefixParselet<E>> prefix = new HashMap<>();
-    private final Map<String, InfixParselet<E>> infix = new HashMap<>();
+    private final Map<K, PrefixParselet<E, K>> prefix = new HashMap<>();
+    private final Map<K, InfixParselet<E, K>> infix = new HashMap<>();
 
-    public Parser(List<Token> tokens) { this.tokens = tokens; }
+    /**
+     * @param tokens  the tokens to parse, ending with an EOF token
+     * @param eofKind the kind that means end of input
+     */
+    public Parser(List<Token<K>> tokens, K eofKind) {
+        this.tokens = tokens;
+        this.eofKind = eofKind;
+    }
 
     /**
      * Registers the parselet that parses {@code kind} at the start of
@@ -28,7 +37,7 @@ public final class Parser<E> {
      * @param kind the token kind
      * @param p    the parselet
      */
-    public void prefix(String kind, PrefixParselet<E> p) { prefix.put(kind, p); }
+    public void prefix(K kind, PrefixParselet<E, K> p) { prefix.put(kind, p); }
 
     /**
      * Registers the parselet that parses {@code kind} after a left-hand
@@ -37,14 +46,14 @@ public final class Parser<E> {
      * @param kind the token kind
      * @param p    the parselet
      */
-    public void infix(String kind, InfixParselet<E> p) { infix.put(kind, p); }
+    public void infix(K kind, InfixParselet<E, K> p) { infix.put(kind, p); }
 
     /** The next token without consuming it; the EOF token at end of input. */
-    public Token peek() { return tokens.get(Math.min(pos, tokens.size() - 1)); }
+    public Token<K> peek() { return tokens.get(Math.min(pos, tokens.size() - 1)); }
 
     /** Consumes and returns the next token. */
-    public Token advance() {
-        Token t = peek();
+    public Token<K> advance() {
+        Token<K> t = peek();
         if (pos < tokens.size() - 1) pos++;
         return t;
     }
@@ -55,7 +64,7 @@ public final class Parser<E> {
      * @param kind the expected kind
      * @return whether the token matched and was consumed
      */
-    public boolean match(String kind) {
+    public boolean match(K kind) {
         if (peek().kind().equals(kind)) { advance(); return true; }
         return false;
     }
@@ -68,13 +77,13 @@ public final class Parser<E> {
      * @return the consumed token
      * @throws LangError if the next token has another kind
      */
-    public Token expect(String kind, String what) {
+    public Token<K> expect(K kind, String what) {
         if (peek().kind().equals(kind)) return advance();
         throw new LangError(
             "expected " + what + ", got '" + peek().lexeme() + "'", peek().span());
     }
     /** Whether the next token is the EOF token. */
-    public boolean eof() { return peek().kind().equals("EOF"); }
+    public boolean eof() { return peek().kind().equals(eofKind); }
 
     /**
      * Parses an expression, consuming operators with precedence at least
@@ -88,17 +97,17 @@ public final class Parser<E> {
      * @throws LangError if the next token cannot start an expression
      */
     public E parseExpression(int minPrecedence) {
-        Token tok = advance();
-        PrefixParselet<E> pre = prefix.get(tok.kind());
+        Token<K> tok = advance();
+        PrefixParselet<E, K> pre = prefix.get(tok.kind());
         if (pre == null) {
             throw new LangError(
                 "unexpected token '" + tok.lexeme() + "'", tok.span());
         }
         E left = pre.parse(this, tok);
         while (true) {
-            InfixParselet<E> inf = infix.get(peek().kind());
+            InfixParselet<E, K> inf = infix.get(peek().kind());
             if (inf == null || inf.precedence() < minPrecedence) break;
-            Token op = advance();
+            Token<K> op = advance();
             left = inf.parse(this, left, op);
         }
         return left;

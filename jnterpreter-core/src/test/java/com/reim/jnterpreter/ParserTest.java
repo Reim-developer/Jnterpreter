@@ -18,6 +18,9 @@ import org.junit.jupiter.api.Test;
 class ParserTest {
     private static final Span SPAN = new Span("test", 0, 1, 1, 1);
 
+    /** The test language's token kinds. */
+    enum Kind { NUMBER, IDENT, PLUS, MINUS, STAR, SLASH, LPAREN, RPAREN, EOF }
+
     /** A tiny test AST: numbers, variables, binary and unary nodes. */
     private sealed interface Expr permits Expr.Num, Expr.Var, Expr.Bin, Expr.Unary {
         record Num(double v) implements Expr {}
@@ -26,31 +29,31 @@ class ParserTest {
         record Unary(String op, Expr e) implements Expr {}
     }
 
-    private static Token tok(String kind, String lexeme) {
-        return new Token(kind, lexeme, SPAN);
+    private static Token<Kind> tok(Kind kind, String lexeme) {
+        return new Token<>(kind, lexeme, SPAN);
     }
 
-    private static Parser<Expr> parser(List<Token> tokens) {
-        Parser<Expr> p = new Parser<>(tokens);
-        p.prefix("NUMBER", (pp, t) -> new Expr.Num(Double.parseDouble(t.lexeme())));
-        p.prefix("IDENT", (pp, t) -> new Expr.Var(t.lexeme()));
-        p.prefix("(", (pp, t) -> {
+    private static Parser<Expr, Kind> parser(List<Token<Kind>> tokens) {
+        Parser<Expr, Kind> p = new Parser<>(tokens, Kind.EOF);
+        p.prefix(Kind.NUMBER, (pp, t) -> new Expr.Num(Double.parseDouble(t.lexeme())));
+        p.prefix(Kind.IDENT, (pp, t) -> new Expr.Var(t.lexeme()));
+        p.prefix(Kind.LPAREN, (pp, t) -> {
             Expr e = pp.parseExpression();
-            pp.expect(")", "')'");
+            pp.expect(Kind.RPAREN, "')'");
             return e;
         });
-        p.prefix("-", (pp, t) -> new Expr.Unary("-", pp.parseExpression(3)));
-        binary(p, "+", 1);
-        binary(p, "-", 1);
-        binary(p, "*", 2);
-        binary(p, "/", 2);
+        p.prefix(Kind.MINUS, (pp, t) -> new Expr.Unary("-", pp.parseExpression(3)));
+        binary(p, Kind.PLUS, "+", 1);
+        binary(p, Kind.MINUS, "-", 1);
+        binary(p, Kind.STAR, "*", 2);
+        binary(p, Kind.SLASH, "/", 2);
         return p;
     }
 
-    private static void binary(Parser<Expr> p, String op, int prec) {
-        p.infix(op, new InfixParselet<Expr>() {
+    private static void binary(Parser<Expr, Kind> p, Kind kind, String op, int prec) {
+        p.infix(kind, new InfixParselet<Expr, Kind>() {
             @Override public int precedence() { return prec; }
-            @Override public Expr parse(Parser<Expr> pp, Expr left, Token t) {
+            @Override public Expr parse(Parser<Expr, Kind> pp, Expr left, Token<Kind> t) {
                 return new Expr.Bin(op, left, pp.parseExpression(prec + 1));
             }
         });
@@ -58,9 +61,9 @@ class ParserTest {
 
     @Test
     void precedenceShapesTree() {
-        Parser<Expr> p = parser(List.of(
-            tok("NUMBER", "1"), tok("+", "+"), tok("NUMBER", "2"),
-            tok("*", "*"), tok("NUMBER", "3"), tok("EOF", "")));
+        Parser<Expr, Kind> p = parser(List.of(
+            tok(Kind.NUMBER, "1"), tok(Kind.PLUS, "+"), tok(Kind.NUMBER, "2"),
+            tok(Kind.STAR, "*"), tok(Kind.NUMBER, "3"), tok(Kind.EOF, "")));
         assertEquals(new Expr.Bin("+", new Expr.Num(1),
             new Expr.Bin("*", new Expr.Num(2), new Expr.Num(3))),
             p.parseExpression());
@@ -68,18 +71,18 @@ class ParserTest {
 
     @Test
     void leftAssociativity() {
-        Parser<Expr> p = parser(List.of(
-            tok("NUMBER", "10"), tok("-", "-"), tok("NUMBER", "4"),
-            tok("-", "-"), tok("NUMBER", "3"), tok("EOF", "")));
+        Parser<Expr, Kind> p = parser(List.of(
+            tok(Kind.NUMBER, "10"), tok(Kind.MINUS, "-"), tok(Kind.NUMBER, "4"),
+            tok(Kind.MINUS, "-"), tok(Kind.NUMBER, "3"), tok(Kind.EOF, "")));
         assertEquals(new Expr.Bin("-", new Expr.Bin("-", new Expr.Num(10), new Expr.Num(4)),
             new Expr.Num(3)), p.parseExpression());
     }
 
     @Test
     void parenthesesGroup() {
-        Parser<Expr> p = parser(List.of(
-            tok("(", "("), tok("NUMBER", "1"), tok("+", "+"), tok("NUMBER", "2"),
-            tok(")", ")"), tok("*", "*"), tok("NUMBER", "3"), tok("EOF", "")));
+        Parser<Expr, Kind> p = parser(List.of(
+            tok(Kind.LPAREN, "("), tok(Kind.NUMBER, "1"), tok(Kind.PLUS, "+"), tok(Kind.NUMBER, "2"),
+            tok(Kind.RPAREN, ")"), tok(Kind.STAR, "*"), tok(Kind.NUMBER, "3"), tok(Kind.EOF, "")));
         assertEquals(new Expr.Bin("*",
             new Expr.Bin("+", new Expr.Num(1), new Expr.Num(2)), new Expr.Num(3)),
             p.parseExpression());
@@ -87,16 +90,16 @@ class ParserTest {
 
     @Test
     void unaryBindsTighter() {
-        Parser<Expr> p = parser(List.of(
-            tok("-", "-"), tok("NUMBER", "2"), tok("*", "*"),
-            tok("NUMBER", "3"), tok("EOF", "")));
+        Parser<Expr, Kind> p = parser(List.of(
+            tok(Kind.MINUS, "-"), tok(Kind.NUMBER, "2"), tok(Kind.STAR, "*"),
+            tok(Kind.NUMBER, "3"), tok(Kind.EOF, "")));
         assertEquals(new Expr.Bin("*", new Expr.Unary("-", new Expr.Num(2)), new Expr.Num(3)),
             p.parseExpression());
     }
 
     @Test
     void missingPrefixParseletThrows() {
-        Parser<Expr> p = parser(List.of(tok(")", ")"), tok("EOF", "")));
+        Parser<Expr, Kind> p = parser(List.of(tok(Kind.RPAREN, ")"), tok(Kind.EOF, "")));
         LangError error = assertThrows(LangError.class, p::parseExpression);
         assertTrue(error.diag.message().contains("unexpected token"));
         assertEquals(SPAN, error.diag.span());
@@ -104,29 +107,29 @@ class ParserTest {
 
     @Test
     void expectMismatchThrows() {
-        Parser<Expr> p = parser(List.of(tok("+", "+"), tok("EOF", "")));
-        LangError error = assertThrows(LangError.class, () -> p.expect(")", "')'"));
+        Parser<Expr, Kind> p = parser(List.of(tok(Kind.PLUS, "+"), tok(Kind.EOF, "")));
+        LangError error = assertThrows(LangError.class, () -> p.expect(Kind.RPAREN, "')'"));
         assertEquals("expected ')', got '+'", error.diag.message());
         assertEquals(SPAN, error.diag.span());
     }
 
     @Test
     void eofHandling() {
-        Parser<Expr> p = parser(List.of(tok("EOF", "")));
-        assertEquals("EOF", p.peek().kind());
-        assertEquals("EOF", p.peek().kind());
-        assertEquals("EOF", p.advance().kind());
-        assertEquals("EOF", p.peek().kind());
+        Parser<Expr, Kind> p = parser(List.of(tok(Kind.EOF, "")));
+        assertEquals(Kind.EOF, p.peek().kind());
+        assertEquals(Kind.EOF, p.peek().kind());
+        assertEquals(Kind.EOF, p.advance().kind());
+        assertEquals(Kind.EOF, p.peek().kind());
         assertTrue(p.eof());
         assertThrows(LangError.class, p::parseExpression);
     }
 
     @Test
     void matchConsumesOnKind() {
-        Parser<Expr> p = parser(List.of(tok("+", "+"), tok("NUMBER", "1"), tok("EOF", "")));
-        assertTrue(p.match("+"));
-        assertEquals("NUMBER", p.peek().kind());
-        assertFalse(p.match("+"));
-        assertEquals("NUMBER", p.peek().kind());
+        Parser<Expr, Kind> p = parser(List.of(tok(Kind.PLUS, "+"), tok(Kind.NUMBER, "1"), tok(Kind.EOF, "")));
+        assertTrue(p.match(Kind.PLUS));
+        assertEquals(Kind.NUMBER, p.peek().kind());
+        assertFalse(p.match(Kind.PLUS));
+        assertEquals(Kind.NUMBER, p.peek().kind());
     }
 }
