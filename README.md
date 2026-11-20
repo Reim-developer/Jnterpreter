@@ -26,9 +26,10 @@ import com.reim.jnterpreter.runtime.Env;
 import com.reim.jnterpreter.runtime.Value;
 
 // 1. Tokenize with your own lexer (subclass LexerBase).
+// Token kinds are your own type, typically an enum (Kind here).
 // 2. Parse expressions with Pratt parsing (Expr is your own AST type).
-Parser<Expr> parser = new Parser<>(tokens);
-parser.prefix("NUMBER", (p, tok) ->
+Parser<Expr, Kind> parser = new Parser<>(tokens, Kind.EOF);
+parser.prefix(Kind.NUMBER, (p, tok) ->
     new Expr.Lit(new Value.Num(Double.parseDouble(tok.lexeme())), tok.span()));
 Expr expr = parser.parseExpression();
 
@@ -47,6 +48,24 @@ try {
 // 5. A REPL reads lines, evaluates them, and prints results.
 new Repl(this::evalLine,
     new InputStreamReader(System.in), new OutputStreamWriter(System.out)).run();
+```
+
+## Tokens
+
+A token is a kind, the text it was scanned from, and the
+span it covers. The kind type is defined by the language,
+typically an enum, so a mistyped kind is a compile error
+rather than a runtime surprise. `LexerBase` and `Parser`
+take the language's EOF kind as a constructor argument.
+
+```java
+import com.reim.jnterpreter.diagnostic.Span;
+import com.reim.jnterpreter.lexer.Token;
+
+enum Kind { NUMBER, PLUS, EOF }
+
+Span span = new Span("demo", 0, 1, 1, 1);
+Token<Kind> token = new Token<>(Kind.NUMBER, "42", span);
 ```
 
 ## Type inference

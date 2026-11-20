@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.5.0] - 2026-11-21
+
+### Changed
+
+- **Breaking:** token kinds are now typed. `Token` is
+  `Token<K>`, `LexerBase` is `LexerBase<K>`, `Parser` is
+  `Parser<E, K>`, and both parselets take a `K` parameter.
+  `LexerBase` and `Parser` take the language's EOF kind as a
+  constructor argument. Migration:
+
+  ```java
+  // Before
+  Token t = new Token("NUMBER", "1", span);
+  Parser<Expr> p = new Parser(tokens);
+  class MyLexer extends LexerBase { ... }
+
+  // After
+  enum Kind { NUMBER, EOF }
+  Token<Kind> t = new Token<>(Kind.NUMBER, "1", span);
+  Parser<Expr, Kind> p = new Parser<>(tokens, Kind.EOF);
+  class MyLexer extends LexerBase<Kind> { ... }
+  ```
+
+  Error messages are unchanged.
+
 ## [0.4.0] - 2026-11-21
 
 ### Added
