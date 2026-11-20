@@ -1,12 +1,11 @@
 package com.reim.jnterpreter.runtime;
 
 import java.util.List;
-import java.util.function.Function;
 
 /** The value domain. Sealed, so the evaluator's dispatch is exhaustive
     and the compiler catches a missing case. */
 public sealed interface Value
-    permits Value.Num, Value.Str, Value.Bool, Value.Nil, Value.Fn, Value.NativeFn {
+    permits Value.Num, Value.Str, Value.Bool, Value.Nil, Value.Fn {
     record Num(double v) implements Value {
         @Override public String toString() {
             if (v == Math.rint(v) && Math.abs(v) < 1e15) {
@@ -28,16 +27,13 @@ public sealed interface Value
         @Override public String toString() { return "nil"; }
     }
 
-    /** A closure: params + a body the evaluator builds as a lambda that
-        closes over the DEFINING Env. The framework never sees the AST --
-        lexical capture falls out of Java's own closures. */
-    record Fn(String name, List<String> params,
-              Function<List<Value>, Value> body) implements Value {
-        @Override public String toString() { return "<fn " + name + ">"; }
-    }
-
-    record NativeFn(String name, int arity,
-                    Function<List<Value>, Value> body) implements Value {
-        @Override public String toString() { return "<native fn " + name + ">"; }
+    /** A callable value. Implemented by closures defined in the
+        interpreted language and by native functions provided by the
+        host (see {@link NativeFn}). Non-sealed: any class may implement
+        it, so the language defines its own closure type. */
+    non-sealed interface Fn extends Value {
+        String name();
+        int arity();
+        Value call(List<Value> args);
     }
 }

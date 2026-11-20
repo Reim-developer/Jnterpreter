@@ -43,9 +43,9 @@ try {
     System.out.print(e.diag.render(sourceText));
 }
 
-// 5. A REPL is a function of (eval, reader, writer).
-Repl.run(this::evalLine,
-    new InputStreamReader(System.in), new OutputStreamWriter(System.out));
+// 5. A REPL reads lines, evaluates them, and prints results.
+new Repl(this::evalLine,
+    new InputStreamReader(System.in), new OutputStreamWriter(System.out)).run();
 ```
 
 ## License

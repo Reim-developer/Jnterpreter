@@ -103,8 +103,8 @@ class MiniTest {
     void replSession() throws IOException {
         Mini.Session repl = new Mini.Session();
         StringWriter out = new StringWriter();
-        Repl.run(repl::evalLine,
-            new StringReader("let a = 2;\na * 3\nb * 2\n"), out);
+        new Repl(repl::evalLine,
+            new StringReader("let a = 2;\na * 3\nb * 2\n"), out).run();
         // Repl writes through BufferedWriter.newLine(): the platform
         // separator, not always "\n" (see stringsAndNativePrint).
         String nl = System.lineSeparator();

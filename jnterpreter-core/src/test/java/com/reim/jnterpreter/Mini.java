@@ -17,6 +17,7 @@ import com.reim.jnterpreter.lexer.Token;
 import com.reim.jnterpreter.parser.InfixParselet;
 import com.reim.jnterpreter.parser.Parser;
 import com.reim.jnterpreter.runtime.Env;
+import com.reim.jnterpreter.runtime.NativeFn;
 import com.reim.jnterpreter.runtime.Value;
 
 import java.io.ByteArrayOutputStream;
@@ -257,6 +258,35 @@ class Mini {
 
     // ---- Evaluator: tree-walking over the sealed AST. Exhaustive switches. ----
 
+    /** A Mini closure: its parameters, its body statements, and the
+        environment captured at definition. Calling it evaluates the body
+        in a child of the captured environment. */
+    static final class Closure implements Value.Fn {
+        private final List<String> params;
+        private final List<Stmt> body;
+        private final Env captured;
+
+        Closure(List<String> params, List<Stmt> body, Env captured) {
+            this.params = params;
+            this.body = body;
+            this.captured = captured;
+        }
+
+        @Override public String name() { return "anonymous"; }
+
+        @Override public int arity() { return params.size(); }
+
+        @Override public Value call(List<Value> args) {
+            Env callEnv = captured.child();
+            for (int i = 0; i < params.size(); i++) {
+                callEnv.define(params.get(i), args.get(i));
+            }
+            return evalBlock(body, callEnv);
+        }
+
+        @Override public String toString() { return "<fn anonymous>"; }
+    }
+
     static Value evalExpr(Expr e, Env env) {
         if (e instanceof Expr.Lit lit) return lit.v();
         if (e instanceof Expr.Var var) return env.get(var.name(), var.span());
@@ -275,30 +305,16 @@ class Mini {
             List<Value> args = new ArrayList<>();
             for (Expr arg : call.args()) args.add(evalExpr(arg, env));
             if (callee instanceof Value.Fn fn) {
-                if (args.size() != fn.params().size()) {
-                    throw new LangError("expected " + fn.params().size()
-                        + " arguments, got " + args.size(), call.span());
-                }
-                return fn.body().apply(args);
-            }
-            if (callee instanceof Value.NativeFn fn) {
                 if (args.size() != fn.arity()) {
                     throw new LangError("expected " + fn.arity()
                         + " arguments, got " + args.size(), call.span());
                 }
-                return fn.body().apply(args);
+                return fn.call(args);
             }
             throw new LangError("not callable: " + callee, call.span());
         }
         if (e instanceof Expr.FnExpr fn) {
-            Env closure = env;
-            return new Value.Fn("anonymous", fn.params(), args -> {
-                Env callEnv = closure.child();
-                for (int i = 0; i < fn.params().size(); i++) {
-                    callEnv.define(fn.params().get(i), args.get(i));
-                }
-                return evalBlock(fn.body(), callEnv);
-            });
+            return new Closure(fn.params(), fn.body(), env);
         }
         throw new AssertionError("unreachable: " + e);
     }
@@ -393,7 +409,7 @@ class Mini {
         final PrintStream out = new PrintStream(outBytes);
 
         Session() {
-            global.define("print", new Value.NativeFn("print", 1, args -> {
+            global.define("print", new NativeFn("print", 1, args -> {
                 out.println(args.get(0));
                 return new Value.Nil();
             }));

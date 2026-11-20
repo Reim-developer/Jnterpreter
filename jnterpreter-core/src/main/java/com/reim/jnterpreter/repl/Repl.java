@@ -1,29 +1,44 @@
 package com.reim.jnterpreter.repl;
+
 import com.reim.jnterpreter.diagnostic.LangError;
 import com.reim.jnterpreter.runtime.Value;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
-import java.util.function.Function;
+import java.util.Objects;
 
-/** A REPL is a function of (eval, reader, writer): testable, embeddable,
-    never hardcoded to System.in/out. v1 reads one line per input; a
-    multiline (brace-balance) REPL is a named gap, not a silent bug. */
+/** A read-eval-print loop: it reads lines from a reader, evaluates each
+    one, and writes results to a writer. Testable and embeddable: it is
+    never hardcoded to System.in/out. */
 public final class Repl {
-    private Repl() {}
+    /** Evaluates one line of input and returns its value. A result of
+        {@link Value.Nil} is not printed; a {@link LangError} is printed
+        as {@code error: <message>}. */
+    @FunctionalInterface
+    public interface Evaluator {
+        Value evalLine(String line);
+    }
 
-    public static void run(Function<String, Value> evalLine,
-                           Reader in, Writer out) throws IOException {
+    private final Evaluator eval;
+    private final Reader in;
+    private final Writer out;
+
+    public Repl(Evaluator eval, Reader in, Writer out) {
+        this.eval = Objects.requireNonNull(eval, "eval");
+        this.in = Objects.requireNonNull(in, "in");
+        this.out = Objects.requireNonNull(out, "out");
+    }
+
+    public void run() throws IOException {
         BufferedReader reader = new BufferedReader(in);
         BufferedWriter writer = new BufferedWriter(out);
         String line;
         while ((line = reader.readLine()) != null) {
             if (line.isBlank()) continue;
             try {
-                Value v = evalLine.apply(line);
+                Value v = eval.evalLine(line);
                 if (!(v instanceof Value.Nil)) {
                     writer.write(v.toString());
                     writer.newLine();
