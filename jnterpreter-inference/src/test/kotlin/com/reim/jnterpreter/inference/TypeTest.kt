@@ -88,4 +88,48 @@ class TypeTest {
         val built = Type.`fun`(Type.NUM, Type.STR)
         assertEquals(Type.Fun(Type.NUM, Type.STR), built)
     }
+
+    @Test
+    fun recordPrintsSortedFields() {
+        // Built y-first; field order is not part of the type, so
+        // printing sorts by name.
+        val record = Type.record(mapOf("y" to Type.STR, "x" to Type.NUM))
+        assertEquals("{x: num, y: str}", record.toString())
+    }
+
+    @Test
+    fun emptyRecordPrintsBraces() {
+        assertEquals("{}", Type.record(emptyMap()).toString())
+    }
+
+    @Test
+    fun nestedRecordPrints() {
+        val inner = Type.record(mapOf("b" to Type.NUM))
+        assertEquals("{a: {b: num}}", Type.record(mapOf("a" to inner)).toString())
+    }
+
+    @Test
+    fun recordInFunctionPrintsWithoutParens() {
+        val record = Type.record(mapOf("x" to Type.NUM))
+        assertEquals("{x: num} -> num", Type.`fun`(record, Type.NUM).toString())
+        assertEquals("num -> {x: num}", Type.`fun`(Type.NUM, record).toString())
+    }
+
+    @Test
+    fun functionFieldPrintsWithoutParens() {
+        val a = Type.Var()
+        val b = Type.Var()
+        val record = Type.record(mapOf("f" to Type.`fun`(a, b)))
+        assertEquals("{f: a -> b}", record.toString())
+    }
+
+    @Test
+    fun recordVariableNamingFollowsSortedOrder() {
+        val first = Type.Var()
+        val second = Type.Var()
+        // Built y-first, but the printer walks fields sorted, so the
+        // x field's variable is named first.
+        val record = Type.record(mapOf("y" to first, "x" to second))
+        assertEquals("{x: a, y: b}", record.toString())
+    }
 }

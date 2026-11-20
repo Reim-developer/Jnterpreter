@@ -98,6 +98,7 @@ class Checker {
                 substitute(t.from, quantified, mapping),
                 substitute(t.to, quantified, mapping),
             )
+            is Type.Rec -> Type.Rec(t.fields.mapValues { substitute(it.value, quantified, mapping) })
         }
     }
 
@@ -115,6 +116,7 @@ class Checker {
                 collectFreeVars(t.from, out)
                 collectFreeVars(t.to, out)
             }
+            is Type.Rec -> t.fields.values.forEach { collectFreeVars(it, out) }
         }
     }
 
@@ -123,6 +125,7 @@ class Checker {
             is Type.Var -> t === variable
             is Type.Con -> t.args.any { occurs(variable, it) }
             is Type.Fun -> occurs(variable, t.from) || occurs(variable, t.to)
+            is Type.Rec -> t.fields.values.any { occurs(variable, it) }
         }
     }
 

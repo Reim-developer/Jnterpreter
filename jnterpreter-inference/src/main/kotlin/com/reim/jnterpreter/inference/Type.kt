@@ -1,14 +1,16 @@
 package com.reim.jnterpreter.inference
 
 /**
- * A type: a variable, a named constructor, or a function type.
+ * A type: a variable, a named constructor, a function type, or a
+ * record type.
  *
  * The algebra is Hindley-Milner: variables are mutable (unifying one
- * binds it), constructors are named with argument types, and function
- * types nest to the right. Base types are nullary constructors
- * ([NUM], [STR], [BOOL], [NIL]). A type is not a pure value - a
- * variable's binding changes as inference proceeds - so tests assert
- * on the printed form, which is the type's observable contract.
+ * binds it), constructors are named with argument types, function
+ * types nest to the right, and record types are fixed sets of named
+ * fields. Base types are nullary constructors ([NUM], [STR], [BOOL],
+ * [NIL]). A type is not a pure value - a variable's binding changes
+ * as inference proceeds - so tests assert on the printed form, which
+ * is the type's observable contract.
  */
 sealed interface Type {
     /**
@@ -73,6 +75,23 @@ sealed interface Type {
         override fun toString(): String = TypePrinter().format(this)
     }
 
+    /**
+     * A record type: a fixed set of named fields, each with a
+     * type. Field order is NOT part of the type - two records
+     * with the same fields in different orders are the same
+     * type. Constructed only through [Type.record]; the
+     * constructor is internal, like [Var]'s.
+     *
+     * @param fields the field names and their types; copied on
+     *               construction by [Type.record]
+     */
+    @ConsistentCopyVisibility
+    data class Rec internal constructor(val fields: Map<String, Type>) : Type {
+        override fun prune(): Type = this
+
+        override fun toString(): String = TypePrinter().format(this)
+    }
+
     companion object {
         /** The type of numbers. */
         @JvmField
@@ -99,5 +118,17 @@ sealed interface Type {
          */
         @JvmStatic
         fun `fun`(from: Type, to: Type): Type = Fun(from, to)
+
+        /**
+         * A record type from its fields. The map is copied, so
+         * later changes to the caller's map do not affect the
+         * type. The empty map is a valid record type, printed
+         * as `{}`.
+         *
+         * @param fields the field names and their types
+         * @return the record type
+         */
+        @JvmStatic
+        fun record(fields: Map<String, Type>): Type = Rec(fields.toMap())
     }
 }

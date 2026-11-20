@@ -35,6 +35,15 @@ internal class TypePrinter {
                 val rendered = "${format(t.from, inLeft = true)} -> ${format(t.to, inLeft = false)}"
                 if (inLeft) "($rendered)" else rendered
             }
+            is Type.Rec -> {
+                if (t.fields.isEmpty()) {
+                    "{}"
+                } else {
+                    t.fields.entries.sortedBy { it.key }.joinToString(
+                        prefix = "{", separator = ", ", postfix = "}"
+                    ) { (name, fieldTy) -> "$name: ${format(fieldTy, inLeft = false)}" }
+                }
+            }
         }
     }
 
