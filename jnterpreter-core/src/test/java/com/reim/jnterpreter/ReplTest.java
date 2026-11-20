@@ -85,7 +85,60 @@ class ReplTest {
     @Test
     void nullPromptThrows() {
         StringWriter out = new StringWriter();
+        // The cast disambiguates the String overload from the
+        // ErrorRenderer overload: a bare null matches both.
         assertThrows(NullPointerException.class, () -> new Repl(
-            line -> new Value.Nil(), new StringReader(""), out, null));
+            line -> new Value.Nil(), new StringReader(""), out, (String) null));
+    }
+
+    @Test
+    void customRendererOutput() throws IOException {
+        StringWriter out = new StringWriter();
+        new Repl(line -> {
+            throw new LangError("boom", SPAN);
+        }, new StringReader("x\n"), out,
+            diag -> diag.span().source() + ":" + diag.span().line()
+                + ":" + diag.span().col() + ": " + diag.message()).run();
+        assertEquals("test:1:1: boom" + NL, out.toString());
+    }
+
+    /** A language's own error type, subclassing LangError. */
+    private static class MyError extends LangError {
+        private static final long serialVersionUID = 1L;
+
+        MyError(String message, Span span) {
+            super(message, span);
+        }
+    }
+
+    @Test
+    void langErrorSubtypeCaughtAndRendered() throws IOException {
+        StringWriter out = new StringWriter();
+        new Repl(line -> {
+            throw new MyError("custom boom", SPAN);
+        }, new StringReader("x\n"), out,
+            diag -> "custom: " + diag.message()).run();
+        assertEquals("custom: custom boom" + NL, out.toString());
+    }
+
+    @Test
+    void customRendererWithPrompt() throws IOException {
+        StringWriter out = new StringWriter();
+        new Repl(line -> {
+            throw new LangError("boom", SPAN);
+        }, new StringReader("x\n"), out, "> ",
+            diag -> "custom: " + diag.message()).run();
+        assertEquals("> custom: boom" + NL + "> ", out.toString());
+    }
+
+    @Test
+    void nullRendererThrows() {
+        StringWriter out = new StringWriter();
+        assertThrows(NullPointerException.class, () -> new Repl(
+            line -> new Value.Nil(), new StringReader(""), out,
+            (Repl.ErrorRenderer) null));
+        assertThrows(NullPointerException.class, () -> new Repl(
+            line -> new Value.Nil(), new StringReader(""), out, "> ",
+            (Repl.ErrorRenderer) null));
     }
 }
