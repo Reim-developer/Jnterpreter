@@ -1,3 +1,3 @@
 rootProject.name = "jnterpreter"
 
-include("jnterpreter-core", "jnterpreter-inference", "jnterpreter-mini")
+include("jnterpreter-core", "jnterpreter-inference")
