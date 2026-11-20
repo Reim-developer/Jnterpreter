@@ -1,11 +1,10 @@
 package com.reim.jnterpreter;
 
-// Mini -- a tiny language built ON the Jnterpreter toolkit, proving the API.
+// Mini -- a tiny demo language built on the Jnterpreter toolkit.
 //
-// The language: numbers, strings, booleans, nil, let, fn (closures), if,
-// blocks, calls, binary/unary ops, print. Grammar in ~150 lines because the
-// toolkit owns spans, errors, environments and Pratt parsing; this file
-// owns only tokens, the AST, statement parsing and evaluation semantics.
+// Grammar: numbers, strings, booleans, nil, let bindings, fn expressions
+// with lexical closures, if expressions, blocks, calls, binary and unary
+// operators, and a print native function. Statements are separated by ';'.
 //
 // Test fixture, not library code: it lives in src/test/java and exists so
 // MiniTest can exercise the toolkit end to end.
@@ -51,7 +50,7 @@ class Mini {
         record If(Expr cond, List<Stmt> then, List<Stmt> els, Span span) implements Stmt {}
     }
 
-    // ---- Lexer: extends the framework base; only token rules are local. ----
+    // ---- Lexer: extends the toolkit base; only token rules are local. ----
     // For STRING tokens the lexeme is the COOKED value (escapes resolved);
     // for everything else it is the raw text.
 
@@ -129,7 +128,7 @@ class Mini {
         }
     }
 
-    // ---- Parser: statements are local; expressions use the framework Pratt parser. ----
+    // ---- Parser: statements are local; expressions use the toolkit Pratt parser. ----
 
     static final class MiniParser {
         private final Parser<Expr> p;
@@ -256,7 +255,7 @@ class Mini {
         }
     }
 
-    // ---- Evaluator: tree-walking over the sealed AST. Exhaustive switches. ----
+    // ---- Evaluator: tree-walking over the sealed AST. Exhaustive dispatch. ----
 
     /** A Mini closure: its parameters, its body statements, and the
         environment captured at definition. Calling it evaluates the body

@@ -12,7 +12,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import org.junit.jupiter.api.Test;
 
-// Ports all 10 scenarios / 20 checks from the spike's Mini.main() to JUnit 5.
+// End-to-end tests for the toolkit, exercised through the Mini demo language.
 
 class MiniTest {
 

@@ -9,15 +9,25 @@ import java.io.Reader;
 import java.io.Writer;
 import java.util.Objects;
 
-/** A read-eval-print loop: it reads lines from a reader, evaluates each
-    one, and writes results to a writer. Testable and embeddable: it is
-    never hardcoded to System.in/out. */
+/** A read-eval-print loop: it reads lines from a reader, evaluates
+ * each one with an {@link Evaluator}, and writes the results to a
+ * writer. Blank lines are skipped; {@link Value.Nil} results are not
+ * printed; a {@link LangError} is printed as {@code error: <message>}.
+ * The loop is never hardcoded to System.in/out, so it is testable with
+ * string readers and writers and embeddable in any host.
+ */
 public final class Repl {
-    /** Evaluates one line of input and returns its value. A result of
-        {@link Value.Nil} is not printed; a {@link LangError} is printed
-        as {@code error: <message>}. */
+    /** Evaluates one line of input and returns its value. */
     @FunctionalInterface
     public interface Evaluator {
+        /**
+         * Evaluates one line.
+         *
+         * @param line the input line, without its line terminator
+         * @return the value of the line; {@link Value.Nil} is not printed
+         * @throws LangError if the line fails to parse or evaluate; the
+         *                   message is printed as {@code error: <message>}
+         */
         Value evalLine(String line);
     }
 
@@ -25,12 +35,27 @@ public final class Repl {
     private final Reader in;
     private final Writer out;
 
+    /**
+     * Creates a REPL.
+     *
+     * @param eval the evaluator for input lines
+     * @param in   where lines are read from
+     * @param out  where results are written
+     * @throws NullPointerException if any argument is null
+     */
     public Repl(Evaluator eval, Reader in, Writer out) {
         this.eval = Objects.requireNonNull(eval, "eval");
         this.in = Objects.requireNonNull(in, "in");
         this.out = Objects.requireNonNull(out, "out");
     }
 
+    /**
+     * Runs the loop until the reader is exhausted. Each line is
+     * evaluated and its result printed; the writer is flushed after
+     * every line.
+     *
+     * @throws IOException if reading or writing fails
+     */
     public void run() throws IOException {
         BufferedReader reader = new BufferedReader(in);
         BufferedWriter writer = new BufferedWriter(out);

@@ -5,8 +5,11 @@ import com.reim.jnterpreter.diagnostic.Span;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Lexer base: position tracking + span creation + error helpers. The
-    language subclasses it and implements nextToken(). */
+/** Base class for lexers: it tracks the current position (offset,
+ * line, column) in the input, creates spans, and builds span errors. A
+ * language subclasses it and implements {@link #nextToken()} with its
+ * own token rules.
+ */
 public abstract class LexerBase {
     protected final String source;
     protected final String text;
@@ -19,26 +22,53 @@ public abstract class LexerBase {
         this.text = text;
     }
 
+    /** Whether the input is fully consumed. */
     protected boolean eof() { return pos >= text.length(); }
+
+    /** The next character, or {@code '\0'} at end of input. */
     protected char peek() { return eof() ? '\0' : text.charAt(pos); }
+
+    /** The character {@code off} positions ahead, or {@code '\0'} past the end. */
     protected char peekAt(int off) {
         return pos + off >= text.length() ? '\0' : text.charAt(pos + off);
     }
+
+    /** Consumes and returns the next character, tracking line and column. */
     protected char advance() {
         char c = text.charAt(pos++);
         if (c == '\n') { line++; col = 1; } else { col++; }
         return c;
     }
+    /**
+     * Creates a span from a recorded start position to the current one.
+     *
+     * @param startPos  the offset where the token started
+     * @param startLine the 1-based line where the token started
+     * @param startCol  the 1-based column where the token started
+     * @return the span covering the consumed characters
+     */
     protected Span spanFrom(int startPos, int startLine, int startCol) {
         return new Span(source, startPos, pos, startLine, startCol);
     }
+    /**
+     * Builds a language error for a span.
+     *
+     * @param message the error message
+     * @param span    the source range the error points at
+     * @return the error, to be thrown by the caller
+     */
     protected LangError error(String message, Span span) {
         return new LangError(message, span);
     }
 
+    /** Scans and returns the next token, or an EOF token at end of input. */
     public abstract Token nextToken();
 
-    /** Tokenize the whole input (EOF token included). */
+    /**
+     * Tokenizes the whole input.
+     *
+     * @return the tokens, including a trailing EOF token
+     */
     public List<Token> tokenize() {
         List<Token> out = new ArrayList<>();
         Token t;
