@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0] - 2026-11-21
+
+### Added
+
+- `jnterpreter-inference`: `Checker.letrec`, a primitive
+  for recursive bindings. The bound name is monomorphic
+  inside its own value and polymorphic in the body.
+
 ## [0.3.0] - 2026-11-21
 
 ### Added

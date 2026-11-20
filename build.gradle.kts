@@ -1,5 +1,5 @@
 group = "io.github.reim-developer"
-version = "0.3.0"
+version = "0.4.0"
 
 subprojects {
     apply(plugin = "java-library")

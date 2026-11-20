@@ -92,6 +92,29 @@ A polymorphic accessor like `fn(r) => r.x` applied to a
 record with extra fields does not type-check - that needs
 row polymorphism, which is not in this release.
 
+Recursive bindings use `Checker.letrec`: the bound name is
+monomorphic inside its own value (every self-use must agree
+on one type) and polymorphic in the body. The primitive
+returns the scheme; the author defines it, so a failed
+letrec defines nothing.
+
+```java
+import com.reim.jnterpreter.diagnostic.Span;
+import com.reim.jnterpreter.inference.Checker;
+import com.reim.jnterpreter.inference.Scheme;
+import com.reim.jnterpreter.inference.Type;
+import com.reim.jnterpreter.inference.TypeEnv;
+
+Span span = new Span("demo", 0, 1, 1, 1);
+Checker checker = new Checker();
+TypeEnv env = new TypeEnv();
+// In a real walk, the lambda infers the value's type in
+// child, where f is already defined.
+Scheme scheme = checker.letrec(env, "f", span,
+    child -> Type.fun(Type.NUM, Type.NUM));
+env.define("f", scheme);
+```
+
 ## License
 
 Licensed under either of Apache License, Version 2.0 or MIT license, at
