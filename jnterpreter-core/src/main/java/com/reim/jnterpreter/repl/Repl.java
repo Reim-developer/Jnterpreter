@@ -14,7 +14,8 @@ import java.util.Objects;
  * writer. Blank lines are skipped; {@link Value.Nil} results are not
  * printed; a {@link LangError} is printed as {@code error: <message>}.
  * The loop is never hardcoded to System.in/out, so it is testable with
- * string readers and writers and embeddable in any host.
+ * string readers and writers and embeddable in any host. An optional
+ * prompt is written and flushed before each line is read.
  */
 public final class Repl {
     /** Evaluates one line of input and returns its value. */
@@ -34,9 +35,10 @@ public final class Repl {
     private final Evaluator eval;
     private final Reader in;
     private final Writer out;
+    private final String prompt;
 
     /**
-     * Creates a REPL.
+     * Creates a REPL with no prompt.
      *
      * @param eval the evaluator for input lines
      * @param in   where lines are read from
@@ -44,9 +46,24 @@ public final class Repl {
      * @throws NullPointerException if any argument is null
      */
     public Repl(Evaluator eval, Reader in, Writer out) {
+        this(eval, in, out, "");
+    }
+
+    /**
+     * Creates a REPL with a prompt, written and flushed before each
+     * line is read.
+     *
+     * @param eval   the evaluator for input lines
+     * @param in     where lines are read from
+     * @param out    where results are written
+     * @param prompt the prompt; an empty prompt writes nothing
+     * @throws NullPointerException if any argument is null
+     */
+    public Repl(Evaluator eval, Reader in, Writer out, String prompt) {
         this.eval = Objects.requireNonNull(eval, "eval");
         this.in = Objects.requireNonNull(in, "in");
         this.out = Objects.requireNonNull(out, "out");
+        this.prompt = Objects.requireNonNull(prompt, "prompt");
     }
 
     /**
@@ -59,8 +76,13 @@ public final class Repl {
     public void run() throws IOException {
         BufferedReader reader = new BufferedReader(in);
         BufferedWriter writer = new BufferedWriter(out);
-        String line;
-        while ((line = reader.readLine()) != null) {
+        while (true) {
+            if (!prompt.isEmpty()) {
+                writer.write(prompt);
+                writer.flush();
+            }
+            String line = reader.readLine();
+            if (line == null) break;
             if (line.isBlank()) continue;
             try {
                 Value v = eval.evalLine(line);

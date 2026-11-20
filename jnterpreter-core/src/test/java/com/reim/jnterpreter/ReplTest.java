@@ -1,6 +1,7 @@
 package com.reim.jnterpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.reim.jnterpreter.diagnostic.LangError;
 import com.reim.jnterpreter.diagnostic.Span;
@@ -69,5 +70,22 @@ class ReplTest {
     void valuesPrintedInOrder() throws IOException {
         String out = run("1\n2\n", line -> new Value.Num(Double.parseDouble(line)));
         assertEquals("1" + NL + "2" + NL, out);
+    }
+
+    @Test
+    void promptPrintedBeforeEachLine() throws IOException {
+        StringWriter out = new StringWriter();
+        new Repl(line -> new Value.Num(Double.parseDouble(line)),
+            new StringReader("1\n2\n"), out, "> ").run();
+        // The prompt is written before each read, so a final prompt
+        // appears before the EOF read ends the loop.
+        assertEquals("> 1" + NL + "> 2" + NL + "> ", out.toString());
+    }
+
+    @Test
+    void nullPromptThrows() {
+        StringWriter out = new StringWriter();
+        assertThrows(NullPointerException.class, () -> new Repl(
+            line -> new Value.Nil(), new StringReader(""), out, null));
     }
 }
