@@ -2,6 +2,7 @@ package com.reim.jnterpreter.inference
 
 import com.reim.jnterpreter.diagnostic.LangError
 import com.reim.jnterpreter.diagnostic.Span
+import com.reim.jnterpreter.inference.TestLang.Expr
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -9,49 +10,14 @@ import org.junit.jupiter.api.Test
 
 /**
  * The 8 hm.c demo cases, ported, plus the environment-leak case from
- * the design. The test AST (Lit/Var/Lam/App/Let) and the infer walk
- * live in this file: the engine is exercised through a minimal
- * expression language of its own, so these tests depend on no demo
- * language at all.
+ * the design. The programs run through the shared TestLang walk, so
+ * these tests depend on no demo language at all.
  * Base-type mapping: hm.c `int` -> `num`, `string` -> `str`.
  */
 class HmPortsTest {
     private val span = Span("test", 0, 1, 1, 1)
 
-    /** A minimal expression language for exercising the engine. */
-    private sealed interface Expr {
-        data class Lit(val type: Type) : Expr
-        data class Var(val name: String) : Expr
-        data class Lam(val param: String, val body: Expr) : Expr
-        data class App(val fn: Expr, val arg: Expr) : Expr
-        data class Let(val name: String, val value: Expr, val body: Expr) : Expr
-    }
-
-    private fun infer(e: Expr, env: TypeEnv, checker: Checker): Type = when (e) {
-        is Expr.Lit -> e.type
-        is Expr.Var -> checker.instantiate(env.lookup(e.name, span))
-        is Expr.Lam -> {
-            val param = checker.freshVar()
-            val bodyEnv = env.child()
-            bodyEnv.define(e.param, Scheme.mono(param))
-            Type.`fun`(param, infer(e.body, bodyEnv, checker))
-        }
-        is Expr.App -> {
-            val fnTy = infer(e.fn, env, checker)
-            val argTy = infer(e.arg, env, checker)
-            val res = checker.freshVar()
-            checker.unify(fnTy, Type.`fun`(argTy, res), span, "calling a non-function value")
-            res
-        }
-        is Expr.Let -> {
-            val valueTy = infer(e.value, env, checker)
-            val bodyEnv = env.child()
-            bodyEnv.define(e.name, checker.generalize(env, valueTy))
-            infer(e.body, bodyEnv, checker)
-        }
-    }
-
-    private fun inferType(e: Expr): String = infer(e, TypeEnv(), Checker()).toString()
+    private fun inferType(e: Expr): String = TestLang.inferType(e)
 
     @Test
     fun identityInfersAToA() {
@@ -150,7 +116,7 @@ class HmPortsTest {
         // checked through two independent instantiations of one scheme.
         val checker = Checker()
         val env = TypeEnv()
-        val idType = infer(Expr.Lam("x", Expr.Var("x")), env, checker)
+        val idType = TestLang.infer(Expr.Lam("x", Expr.Var("x")), env, checker)
         val scheme = checker.generalize(env, idType)
         env.define("id", scheme)
         val first = checker.instantiate(scheme)
