@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.0] - 2026-11-21
+
+### Added
+
+- `jnterpreter-core`: parselet annotations - `@Prefix` and
+  `@Infix` on methods, discovered by `Parser.from`. The
+  annotation names the token kind as a string, resolved by a
+  caller-supplied function (`Kind::valueOf` for enum kinds),
+  because a Java annotation cannot hold a generic kind value.
+  Explicit `prefix()`/`infix()` registration is unchanged, and
+  the two can be mixed.
+- `jnterpreter-core`: an error seam. `LangError` is no longer
+  final, so a language can throw its own subtype from its own
+  code, and `Repl` takes an `ErrorRenderer` that formats each
+  diagnostic. The default renders `error: <message>` as before.
+
 ## [0.5.0] - 2026-11-21
 
 ### Changed

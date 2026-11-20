@@ -68,6 +68,62 @@ Span span = new Span("demo", 0, 1, 1, 1);
 Token<Kind> token = new Token<>(Kind.NUMBER, "42", span);
 ```
 
+## Annotations
+
+Parselets can be declared with annotations instead of registered
+by hand: `@Prefix` and `@Infix` on methods of a parselets class,
+discovered by `Parser.from`. The annotation names the token kind
+as a string, resolved by the function passed to `from`
+(`Kind::valueOf` for enum kinds), because a Java annotation
+cannot hold a generic kind value. Explicit `prefix()`/`infix()`
+registration is unchanged, and the two can be mixed: the parser
+returned by `from` accepts further manual registration.
+
+```java
+import com.reim.jnterpreter.diagnostic.Span;
+import com.reim.jnterpreter.lexer.Token;
+import com.reim.jnterpreter.parser.Infix;
+import com.reim.jnterpreter.parser.Parser;
+import com.reim.jnterpreter.parser.Prefix;
+import java.util.List;
+
+enum Kind { NUMBER, PLUS, EOF }
+
+class Parselets {
+    public Parselets() {
+    }
+
+    @Prefix("NUMBER")
+    public String number(Parser<String, Kind> p, Token<Kind> t) {
+        return t.lexeme();
+    }
+
+    @Infix(value = "PLUS", precedence = 1)
+    public String plus(Parser<String, Kind> p, String left, Token<Kind> t) {
+        return left + "+" + p.parseExpression(2);
+    }
+}
+
+Span span = new Span("demo", 0, 1, 1, 1);
+List<Token<Kind>> tokens = List.of(
+    new Token<>(Kind.NUMBER, "1", span),
+    new Token<>(Kind.PLUS, "+", span),
+    new Token<>(Kind.NUMBER, "2", span),
+    new Token<>(Kind.EOF, "", span));
+Parser<String, Kind> parser = Parser.from(Parselets.class, Kind::valueOf, tokens, Kind.EOF);
+System.out.println(parser.parseExpression());
+```
+
+## Errors
+
+Every error is a `LangError` carrying a `Diag` (message, span,
+note). A language may subclass `LangError` and throw its own
+subtype from its own code; the REPL catches the base type, so
+subtypes print through the same path. The REPL also takes an
+`ErrorRenderer` that formats each diagnostic, for example
+`new Repl(eval, in, out, diag -> "custom: " + diag.message())`;
+the default renders `error: <message>`.
+
 ## Type inference
 
 The `jnterpreter-inference` module adds Hindley-Milner type
