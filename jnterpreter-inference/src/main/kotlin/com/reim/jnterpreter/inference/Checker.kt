@@ -92,6 +92,43 @@ class Checker {
         return substitute(scheme.type, scheme.quantified, HashMap())
     }
 
+    /**
+     * Infers a recursive binding: defines [name] in a child of
+     * [env] with a fresh monomorphic variable, runs [inferValue]
+     * in that child, unifies the variable with the inferred type,
+     * and returns the generalized scheme for [name] (generalized
+     * over [env]). The caller defines the returned scheme in the
+     * body environment; if inference or unification fails, nothing
+     * is defined.
+     *
+     * The name is monomorphic inside its own value and polymorphic
+     * in the body: self-uses must all agree on one type, while each
+     * use in the body instantiates the generalized scheme afresh.
+     *
+     * @param env the environment the binding is generalized over
+     * @param name the bound name
+     * @param span the span of the definition, for the error if the
+     *             value's type contradicts the self-uses
+     * @param inferValue infers the value's type in the child
+     *                   environment where [name] is defined
+     * @return the scheme to define [name] with in the body
+     * @throws LangError if the value fails to infer, or the value's
+     *                   type contradicts a self-use
+     */
+    fun letrec(
+        env: TypeEnv,
+        name: String,
+        span: Span,
+        inferValue: (TypeEnv) -> Type,
+    ): Scheme {
+        val variable = freshVar()
+        val valueEnv = env.child()
+        valueEnv.define(name, Scheme.mono(variable))
+        val valueType = inferValue(valueEnv)
+        unify(variable, valueType, span, "the recursive definition of '$name'")
+        return generalize(env, valueType)
+    }
+
     private fun substitute(
         type: Type,
         quantified: Set<Type.Var>,

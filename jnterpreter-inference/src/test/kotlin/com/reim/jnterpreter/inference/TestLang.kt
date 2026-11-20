@@ -22,6 +22,7 @@ object TestLang {
         data class Lam(val param: String, val body: Expr) : Expr
         data class App(val fn: Expr, val arg: Expr) : Expr
         data class Let(val name: String, val value: Expr, val body: Expr) : Expr
+        data class LetRec(val name: String, val value: Expr, val body: Expr) : Expr
         data class Record(val fields: List<Pair<String, Expr>>) : Expr
         data class Project(val record: Expr, val field: String) : Expr
     }
@@ -59,6 +60,14 @@ object TestLang {
             val valueTy = infer(e.value, env, checker)
             val bodyEnv = env.child()
             bodyEnv.define(e.name, checker.generalize(env, valueTy))
+            infer(e.body, bodyEnv, checker)
+        }
+        is Expr.LetRec -> {
+            val scheme = checker.letrec(env, e.name, span) { valueEnv ->
+                infer(e.value, valueEnv, checker)
+            }
+            val bodyEnv = env.child()
+            bodyEnv.define(e.name, scheme)
             infer(e.body, bodyEnv, checker)
         }
         is Expr.Record -> {
