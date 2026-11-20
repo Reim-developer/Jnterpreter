@@ -17,6 +17,12 @@ jobs:
         with:
           java-version: 21
           distribution: temurin
+      # gradlew lost its executable bit in the push train (push-files
+      # creates files mode 100644). Restore it until the tree itself
+      # carries 100755 (needs a git push from a real checkout).
+      - name: Make wrapper executable
+        if: runner.os != 'Windows'
+        run: chmod +x gradlew
       - name: Build and test
         run: ./gradlew build --no-daemon
         shell: bash
