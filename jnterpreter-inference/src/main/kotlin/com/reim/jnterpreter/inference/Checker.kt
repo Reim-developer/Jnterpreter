@@ -53,6 +53,14 @@ class Checker {
                 unify(left.from, right.from, span, context)
                 unify(left.to, right.to, span, context)
             }
+            left is Type.Rec && right is Type.Rec -> {
+                if (left.fields.keys != right.fields.keys) {
+                    throw cannotUnify(left, right, span, context)
+                }
+                left.fields.keys.sorted().forEach { name ->
+                    unify(left.fields.getValue(name), right.fields.getValue(name), span, context)
+                }
+            }
             else -> throw cannotUnify(left, right, span, context)
         }
     }
